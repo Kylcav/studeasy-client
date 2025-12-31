@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { getClasses } from "../api/classes";
+import { useNavigate } from "react-router-dom";
 
 export default function Classes() {
   const [classes, setClasses] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     getClasses()
@@ -19,12 +21,16 @@ export default function Classes() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
         {classes.map((c) => (
-          <div key={c._id} style={card}>
-            <div style={{ fontWeight: 700 }}>{c.name ?? "Classe"}</div>
+          <button
+            key={c._id}
+            onClick={() => navigate(`/classes/${c._id}`)}
+            style={cardButton}
+          >
+            <div style={{ fontWeight: 800, fontSize: 16 }}>{c.name ?? "Classe"}</div>
             <div style={{ color: "#666", marginTop: 6 }}>
-              {c.schoolName ?? c.school?.name ?? "—"}
+              {c.subjects?.length ? `${c.subjects.length} cours` : "0 cours"}
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -35,11 +41,14 @@ export default function Classes() {
   );
 }
 
-const card: React.CSSProperties = {
+const cardButton: React.CSSProperties = {
+  textAlign: "left",
   background: "#fff",
   borderRadius: 14,
   padding: 16,
+  border: "1px solid rgba(0,0,0,0.06)",
   boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+  cursor: "pointer",
 };
 
 const errorBox: React.CSSProperties = {
