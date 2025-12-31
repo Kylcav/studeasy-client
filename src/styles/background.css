@@ -1,0 +1,26 @@
+.bg-grid {
+  min-height: 100vh;
+  background-image: url("/assets/images/screen-background-with-grid.png");
+  background-size: cover;
+  background-position: top center;
+  background-repeat: no-repeat;
+}
+
+.bg-classic {
+  min-height: 100vh;
+  background-image: url("/assets/images/screen-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* overlay léger pour rendre le fond premium sur desktop */
+.bg-overlay::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 500px at 70% 25%, rgba(255,255,255,0.60), rgba(255,255,255,0)),
+    radial-gradient(800px 500px at 25% 80%, rgba(255,255,255,0.35), rgba(255,255,255,0));
+}
