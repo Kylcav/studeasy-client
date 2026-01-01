@@ -4,12 +4,24 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layout/AppLayout";
 import RoleRedirect from "./components/RoleRedirect";
 
+// Teacher pages
+import ClassesTeacher from "./pages/teacher/ClassesTeacher";
+import ClassChaptersTeacher from "./pages/teacher/ClassChaptersTeacher";
+import InviteStudentsTeacher from "./pages/teacher/InviteStudentsTeacher";
+import ViewStudentsTeacher from "./pages/teacher/ViewStudentsTeacher";
+import AddChapterTeacher from "./pages/teacher/AddChapterTeacher";
+import InsightsTeacher from "./pages/teacher/InsightsTeacher";
+import ProfileTeacher from "./pages/teacher/ProfileTeacher";
+
+// Teacher quiz pages
+import GeneratedQuestionsTeacher from "./pages/teacher/GeneratedQuestionsTeacher";
+import ViewQuizTeacher from "./pages/teacher/ViewQuizTeacher";
+
+// Shared / Student pages
 import Dashboard from "./pages/Dashboard";
 import Subjects from "./pages/Subjects";
 import Classes from "./pages/Classes";
 import Errors from "./pages/Errors";
-import Insights from "./pages/Insights";
-import Profile from "./pages/Profile";
 import ClassCourses from "./pages/ClassCourses";
 import Quiz from "./pages/Quiz";
 
@@ -19,7 +31,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
 
-        {/* entrée: redirect selon rôle */}
+        {/* Entrée: redirect selon rôle */}
         <Route
           path="/"
           element={
@@ -29,7 +41,9 @@ export default function App() {
           }
         />
 
-        {/* TEACHER */}
+        {/* =========================
+            TEACHER
+           ========================= */}
         <Route
           path="/teacher/*"
           element={
@@ -38,16 +52,34 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
-          <Route path="classes" element={<Classes />} />
-          <Route path="classes/:classId" element={<ClassCourses />} />
-          <Route path="insights" element={<Insights />} />
-          <Route path="quiz/:id" element={<Quiz />} />
-          <Route path="profile" element={<Profile />} />
+          {/* Teacher landing */}
+          <Route index element={<Navigate to="classes" replace />} />
+
+          <Route path="classes" element={<ClassesTeacher />} />
+          <Route path="classes/:classId" element={<ClassChaptersTeacher />} />
+          <Route path="classes/:classId/invite" element={<InviteStudentsTeacher />} />
+          <Route path="classes/:classId/students" element={<ViewStudentsTeacher />} />
+          <Route path="classes/:classId/add-chapter" element={<AddChapterTeacher />} />
+
+          {/* Quiz flow teacher */}
+          <Route
+            path="classes/:classId/generated-questions/:subjectId"
+            element={<GeneratedQuestionsTeacher />}
+          />
+          <Route
+            path="classes/:classId/view-quiz/:subjectId"
+            element={<ViewQuizTeacher />}
+          />
+
+          <Route path="insights" element={<InsightsTeacher />} />
+          <Route path="profile" element={<ProfileTeacher />} />
+
           <Route path="*" element={<Navigate to="/teacher" replace />} />
         </Route>
 
-        {/* STUDENT */}
+        {/* =========================
+            STUDENT
+           ========================= */}
         <Route
           path="/student/*"
           element={
@@ -56,13 +88,17 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Dashboard />} />
+          <Route index element={<Navigate to="subjects" replace />} />
+
+          <Route path="dashboard" element={<Dashboard />} />
           <Route path="subjects" element={<Subjects />} />
           <Route path="classes" element={<Classes />} />
           <Route path="classes/:classId" element={<ClassCourses />} />
           <Route path="errors" element={<Errors />} />
+
+          {/* Student quiz */}
           <Route path="quiz/:id" element={<Quiz />} />
-          <Route path="profile" element={<Profile />} />
+
           <Route path="*" element={<Navigate to="/student" replace />} />
         </Route>
 

@@ -1,2 +1,2 @@
-import { apiFetch } from "./http";
-export const getErrors = () => apiFetch("/quiz/errors");
+import { getMyMistakes } from "./quiz";
+export const getErrors = () => getMyMistakes();
