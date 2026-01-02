@@ -20,7 +20,7 @@ export default function ViewQuizTeacher() {
   const [error, setError] = useState<string | null>(null);
 
   // ✅ accordion
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+ const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!subjectId) return;
