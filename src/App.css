@@ -40,3 +40,23 @@
 .read-the-docs {
   color: #888;
 }
+
+/* ===============================
+   QUIZ FIX – pas de focus bleu,
+   et pas de style disabled imposé
+================================ */
+
+/* Supprime le focus bleu navigateur */
+button:focus,
+button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Si un style global "disabled" existe ailleurs,
+   on évite qu'il écrase tes couleurs inline */
+button:disabled {
+  opacity: 1 !important;
+  filter: none !important;
+  box-shadow: none !important;
+}

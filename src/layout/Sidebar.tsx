@@ -28,21 +28,25 @@ export default function Sidebar() {
     let lastUrl: string | null = null;
 
     (async () => {
-      const id = String(user?.id ?? user?._id ?? "");
-      if (!id) {
+      try {
+        const id = String(user?.id ?? user?._id ?? "");
+        if (!id) {
+          if (mounted) setAvatarUrl(null);
+          return;
+        }
+
+        const url = await getProfileImageObjectUrl(id);
+
+        if (!mounted) return;
+
+        // cleanup old object url
+        if (lastUrl) URL.revokeObjectURL(lastUrl);
+        lastUrl = url;
+
+        setAvatarUrl(url);
+      } catch {
         if (mounted) setAvatarUrl(null);
-        return;
       }
-
-      const url = await getProfileImageObjectUrl(id);
-
-      if (!mounted) return;
-
-      // cleanup old object url
-      if (lastUrl) URL.revokeObjectURL(lastUrl);
-      lastUrl = url;
-
-      setAvatarUrl(url);
     })();
 
     return () => {
@@ -103,33 +107,42 @@ export default function Sidebar() {
       </div>
 
       <nav style={{ display: "grid", gap: 8 }}>
-        <NavLink to={base} style={linkStyle}>
-          Dashboard
-        </NavLink>
-
-        {!isTeacher && (
-          <NavLink to={`${base}/subjects`} style={linkStyle}>
-            Cours
-          </NavLink>
-        )}
-
-        <NavLink to={`${base}/classes`} style={linkStyle}>
-          Classes
-        </NavLink>
-
         {isTeacher ? (
-          <NavLink to={`${base}/insights`} style={linkStyle}>
-            Insights
-          </NavLink>
-        ) : (
-          <NavLink to={`${base}/errors`} style={linkStyle}>
-            Erreurs
-          </NavLink>
-        )}
+          <>
+            {/* Teacher : landing = /teacher -> redirect classes, donc on pointe direct */}
+            <NavLink to={`${base}/classes`} style={linkStyle}>
+              Classes
+            </NavLink>
 
-        <NavLink to={`${base}/profile`} style={linkStyle}>
-          Profile
-        </NavLink>
+            <NavLink to={`${base}/insights`} style={linkStyle}>
+              Insights
+            </NavLink>
+
+            <NavLink to={`${base}/profile`} style={linkStyle}>
+              Profil
+            </NavLink>
+          </>
+        ) : (
+          <>
+            {/* Student : landing = /student -> redirect home */}
+            <NavLink to={`${base}/home`} style={linkStyle}>
+              Accueil
+            </NavLink>
+
+            <NavLink to={`${base}/classes`} style={linkStyle}>
+              Classes
+            </NavLink>
+
+            {/* Studeasy-v2 : rank = erreurs/mistakes */}
+            <NavLink to={`${base}/rank`} style={linkStyle}>
+              Rang / Erreurs
+            </NavLink>
+
+            <NavLink to={`${base}/profile`} style={linkStyle}>
+              Profil
+            </NavLink>
+          </>
+        )}
 
         <button
           onClick={onLogout}

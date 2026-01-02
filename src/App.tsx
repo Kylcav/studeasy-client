@@ -17,13 +17,13 @@ import ProfileTeacher from "./pages/teacher/ProfileTeacher";
 import GeneratedQuestionsTeacher from "./pages/teacher/GeneratedQuestionsTeacher";
 import ViewQuizTeacher from "./pages/teacher/ViewQuizTeacher";
 
-// Shared / Student pages
-import Dashboard from "./pages/Dashboard";
-import Subjects from "./pages/Subjects";
-import Classes from "./pages/Classes";
-import Errors from "./pages/Errors";
-import ClassCourses from "./pages/ClassCourses";
-import Quiz from "./pages/Quiz";
+// Student pages (web adaptation of studeasy-v2)
+import StudentHome from "./pages/student/StudentHome";
+import StudentClasses from "./pages/student/StudentClasses";
+import StudentClassSubjects from "./pages/student/StudentClassSubjects";
+import StudentRank from "./pages/student/StudentRank";
+import ProfileStudent from "./pages/student/ProfileStudent";
+import StudentQuiz from "./pages/student/StudentQuiz";
 
 export default function App() {
   return (
@@ -52,7 +52,6 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          {/* Teacher landing */}
           <Route index element={<Navigate to="classes" replace />} />
 
           <Route path="classes" element={<ClassesTeacher />} />
@@ -88,16 +87,20 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="subjects" replace />} />
+          {/* Student landing */}
+          <Route index element={<Navigate to="home" replace />} />
 
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="subjects" element={<Subjects />} />
-          <Route path="classes" element={<Classes />} />
-          <Route path="classes/:classId" element={<ClassCourses />} />
-          <Route path="errors" element={<Errors />} />
+          <Route path="home" element={<StudentHome />} />
+          <Route path="classes" element={<StudentClasses />} />
+          <Route path="classes/:classId" element={<StudentClassSubjects />} />
+
+          {/* Studeasy-v2: tab "rank" = erreurs/mistakes */}
+          <Route path="rank" element={<StudentRank />} />
+
+          <Route path="profile" element={<ProfileStudent />} />
 
           {/* Student quiz */}
-          <Route path="quiz/:id" element={<Quiz />} />
+          <Route path="quiz/:subjectId" element={<StudentQuiz />} />
 
           <Route path="*" element={<Navigate to="/student" replace />} />
         </Route>
