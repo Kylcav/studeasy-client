@@ -1,15 +1,13 @@
 import type { ReactNode } from "react";
+import type { ComponentPropsWithoutRef } from "react";
 
-export default function Card({ children }: { children: ReactNode }) {
+type Props = ComponentPropsWithoutRef<"div"> & {
+  children: ReactNode;
+};
+
+export default function Card({ children, className = "", ...rest }: Props) {
   return (
-    <div
-      style={{
-        background: "var(--white)",
-        borderRadius: "var(--radius-xl)",
-        border: "1px solid var(--border)",
-        boxShadow: "var(--shadow-soft)",
-      }}
-    >
+    <div className={`ui-card ${className}`} {...rest}>
       {children}
     </div>
   );

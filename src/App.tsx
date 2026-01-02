@@ -5,6 +5,7 @@ import AppLayout from "./layout/AppLayout";
 import RoleRedirect from "./components/RoleRedirect";
 
 // Teacher pages
+import HomeTeacher from "./pages/teacher/HomeTeacher";
 import ClassesTeacher from "./pages/teacher/ClassesTeacher";
 import ClassChaptersTeacher from "./pages/teacher/ClassChaptersTeacher";
 import InviteStudentsTeacher from "./pages/teacher/InviteStudentsTeacher";
@@ -52,8 +53,13 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<Navigate to="classes" replace />} />
+          {/* ✅ Teacher landing -> Home */}
+          <Route index element={<Navigate to="home" replace />} />
 
+          {/* ✅ Home */}
+          <Route path="home" element={<HomeTeacher />} />
+
+          {/* Classes */}
           <Route path="classes" element={<ClassesTeacher />} />
           <Route path="classes/:classId" element={<ClassChaptersTeacher />} />
           <Route path="classes/:classId/invite" element={<InviteStudentsTeacher />} />

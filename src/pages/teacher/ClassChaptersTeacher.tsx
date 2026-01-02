@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../components/ui/button";
 import Card from "../../components/ui/card";
@@ -34,6 +34,16 @@ export default function ClassChaptersTeacher() {
 
   const getId = (s: any) => String(s?.id ?? s?._id ?? "");
 
+  const getQuestionCount = (s: any) => {
+    if (typeof s?.quizQuestionCount === "number") return s.quizQuestionCount;
+    if (Array.isArray(s?.quizQuestions)) return s.quizQuestions.length;
+    return 0;
+  };
+
+  const totalQuestions = useMemo(() => {
+    return subjects.reduce((acc, s) => acc + getQuestionCount(s), 0);
+  }, [subjects]);
+
   const onDelete = async (s: any) => {
     const sid = getId(s);
     if (!sid) return;
@@ -59,7 +69,6 @@ export default function ClassChaptersTeacher() {
     const sid = getId(s);
     if (!sid) return;
 
-    // on passe un state comme mobile (si présent) pour éviter un refetch inutile
     navigate(`/teacher/classes/${classId}/generated-questions/${sid}`, {
       state: {
         subjectId: sid,
@@ -70,104 +79,154 @@ export default function ClassChaptersTeacher() {
     });
   };
 
-  const getQuestionCount = (s: any) => {
-    if (typeof s?.quizQuestionCount === "number") return s.quizQuestionCount;
-    if (Array.isArray(s?.quizQuestions)) return s.quizQuestions.length;
-    return 0;
-  };
-
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button onClick={() => navigate("/teacher/classes")} style={backBtn}>
-            ←
-          </button>
-          <h1 style={{ margin: 0 }}>Chapitres (cours)</h1>
+    <div className="ui-page fade-in">
+      {/* ===== HEADER PREMIUM ===== */}
+      <div className="slide-up" style={{ display: "grid", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <Button type="button" variant="ghost" onClick={() => navigate("/teacher/classes")}>
+                ← Retour
+              </Button>
+
+              <h1 className="ui-page-title" style={{ fontSize: 34 }}>
+                <span className="ui-title-accent">Chapitres</span> 📘
+              </h1>
+            </div>
+
+            <p className="ui-page-subtitle">
+              Gère tes cours et leurs quiz. Tu peux voir, modifier ou supprimer un chapitre.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button type="button" variant="ghost" onClick={() => navigate(`/teacher/classes/${classId}/invite`)}>
+              👥 Inviter élèves
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => navigate(`/teacher/classes/${classId}/students`)}>
+              👀 Voir élèves
+            </Button>
+            <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}/add-chapter`)}>
+              + Ajouter chapitre
+            </Button>
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}/invite`)}>
-            Inviter élèves
-          </Button>
-          <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}/students`)}>
-            Voir élèves
-          </Button>
-          <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}/add-chapter`)}>
-            + Ajouter chapitre
-          </Button>
+        {/* ===== CHIPS STATS (donne de la vie) ===== */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <span className="ui-chip">📚 {loading ? "…" : subjects.length} chapitres</span>
+          <span className="ui-chip">✅ {loading ? "…" : totalQuestions} questions</span>
+          <span className="ui-chip">✨ Cours → Quiz rapidement</span>
         </div>
       </div>
 
-      {error && <div style={errorBox}>{error}</div>}
+      {/* ===== ERROR ===== */}
+      {error && (
+        <Card className="ui-card hover slide-up">
+          <div className="ui-card-pad ui-alert-error">
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>Oups…</div>
+            <div>{error}</div>
+          </div>
+        </Card>
+      )}
 
-      {loading && <div style={{ color: "#666" }}>Chargement…</div>}
+      {loading && (
+        <div className="slide-up" style={{ color: "var(--placeholder)" }}>
+          Chargement…
+        </div>
+      )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-        {subjects.map((s) => {
+      {/* ===== EMPTY STATE ===== */}
+      {!loading && !error && subjects.length === 0 && (
+        <Card className="ui-card ui-card-hero hover slide-up">
+          <div className="ui-card-pad" style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950, fontSize: 18 }}>🌱 Premier chapitre</div>
+            <div style={{ color: "var(--placeholder)" }}>
+              Ajoute un cours (chapitre), puis génère un quiz pour tes élèves.
+            </div>
+            <div style={{ marginTop: 4 }}>
+              <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}/add-chapter`)}>
+                + Ajouter un chapitre
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ===== GRID CHAPTERS ===== */}
+      <div className="ui-grid-2 slide-up">
+        {subjects.map((s, idx) => {
           const sid = getId(s);
           const count = getQuestionCount(s);
 
-          return (
-            <Card key={sid || s?.title}>
-              <div style={{ padding: 16, display: "grid", gap: 10 }}>
-                <div style={{ display: "grid", gap: 4 }}>
-                  <div style={{ fontWeight: 900 }}>{s?.title ?? "Cours"}</div>
-                  <div style={{ color: "#666" }}>
-                    {count ? `${count} questions` : "Aucun quiz"}
-                  </div>
-                </div>
+          const accent =
+            idx % 3 === 0
+              ? "rgba(93,128,250,0.18)"
+              : idx % 3 === 1
+              ? "rgba(74,222,128,0.14)"
+              : "rgba(251,191,36,0.12)";
 
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Button type="button" onClick={() => onViewQuiz(s)} disabled={!count}>
-                    Voir le quiz
-                  </Button>
-                  <Button type="button" onClick={() => onEditQuiz(s)} disabled={!count}>
-                    Modifier
-                  </Button>
-                  <Button type="button" onClick={() => onDelete(s)} style={dangerBtn}>
-                    Supprimer
-                  </Button>
+          return (
+            <Card key={sid || s?.title} className="ui-card hover">
+              <div className="ui-card-pad class-card">
+                <div className="class-card-accent" style={{ background: accent }} />
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+                    <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontWeight: 950,
+                          fontSize: 16,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={s?.title ?? "Cours"}
+                      >
+                        📘 {s?.title ?? "Cours"}
+                      </div>
+
+                      <div style={{ color: "var(--placeholder)" }}>
+                        {count ? `✅ ${count} questions` : "⚠️ Aucun quiz"}
+                      </div>
+                    </div>
+
+                    <span className="ui-chip">{count} 🧠</span>
+                  </div>
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <Button type="button" onClick={() => onViewQuiz(s)} disabled={!count}>
+                      Voir le quiz
+                    </Button>
+
+                    <Button type="button" variant="ghost" onClick={() => onEditQuiz(s)} disabled={!count}>
+                      Modifier
+                    </Button>
+
+                    <Button type="button" variant="danger" onClick={() => onDelete(s)}>
+                      Supprimer
+                    </Button>
+                  </div>
+
+                  <div style={{ color: "var(--placeholder)", fontSize: 13 }}>
+                    ✨ Astuce : un quiz bien fait booste la motivation des élèves.
+                  </div>
                 </div>
               </div>
             </Card>
           );
         })}
       </div>
-
-      {!loading && !error && subjects.length === 0 && (
-        <div style={{ color: "#666" }}>Aucun chapitre pour cette classe.</div>
-      )}
     </div>
   );
 }
-
-const backBtn: React.CSSProperties = {
-  border: "none",
-  background: "#fff",
-  borderRadius: 10,
-  padding: "8px 10px",
-  cursor: "pointer",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-};
-
-const errorBox: React.CSSProperties = {
-  background: "#ffecec",
-  color: "#b00020",
-  padding: 10,
-  borderRadius: 10,
-};
-
-const dangerBtn: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid rgba(176,0,32,0.25)",
-  color: "#b00020",
-};

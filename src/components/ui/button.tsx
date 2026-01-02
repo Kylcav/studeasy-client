@@ -1,24 +1,29 @@
 import type { ButtonHTMLAttributes } from "react";
 
-export default function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { style, disabled, ...rest } = props;
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "ghost" | "danger";
+};
+
+export default function Button(props: Props) {
+  const {
+    variant = "primary",
+    className = "",
+    disabled,
+    ...rest
+  } = props;
+
+  const v =
+    variant === "ghost"
+      ? "ui-btn ui-btn-ghost"
+      : variant === "danger"
+      ? "ui-btn ui-btn-danger"
+      : "ui-btn ui-btn-primary";
 
   return (
     <button
       {...rest}
       disabled={disabled}
-      style={{
-        height: 48,
-        borderRadius: 14,
-        border: "none",
-        padding: "0 16px",
-        background: disabled ? "#9db0ff" : "var(--primary4)",
-        color: "white",
-        fontWeight: 800,
-        cursor: disabled ? "not-allowed" : "pointer",
-        boxShadow: "0 12px 26px rgba(93, 128, 250, 0.35)",
-        ...style,
-      }}
+      className={`${v} ${disabled ? "is-disabled" : ""} ${className}`}
     />
   );
 }

@@ -17,7 +17,6 @@ export default function AddChapterTeacher() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-
   const [file, setFile] = useState<File | null>(null);
 
   const [autoGenerateQuiz, setAutoGenerateQuiz] = useState(false);
@@ -140,23 +139,60 @@ export default function AddChapterTeacher() {
   };
 
   return (
-    <div style={{ display: "grid", gap: 14, maxWidth: 700 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button
-          onClick={() => navigate(`/teacher/classes/${classId}`)}
-          style={backBtn}
+    <div className="ui-page fade-in" style={{ maxWidth: 900 }}>
+      {/* HEADER */}
+      <div className="slide-up" style={{ display: "grid", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
         >
-          ←
-        </button>
-        <h1 style={{ margin: 0 }}>Ajouter un chapitre</h1>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => navigate(`/teacher/classes/${classId}`)}
+              >
+                ← Retour
+              </Button>
+
+              <h1 className="ui-page-title" style={{ fontSize: 34 }}>
+                <span className="ui-title-accent">Ajouter un chapitre</span> ✨
+              </h1>
+            </div>
+
+            <p className="ui-page-subtitle">
+              Ajoute un cours (texte ou PDF). Optionnel : génère automatiquement un quiz.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <span className="ui-chip">📄 PDF max {MAX_FILE_MB}MB</span>
+            <span className="ui-chip">🧠 Quiz auto</span>
+          </div>
+        </div>
+
+        {error && (
+          <Card className="ui-card hover">
+            <div className="ui-card-pad ui-alert-error">
+              <div style={{ fontWeight: 900, marginBottom: 6 }}>Oups…</div>
+              <div>{error}</div>
+            </div>
+          </Card>
+        )}
       </div>
 
-      {error && <div style={errorBox}>{error}</div>}
-
-      <Card>
-        <div style={{ padding: 16, display: "grid", gap: 10 }}>
-          <div>
-            <div style={label}>Titre</div>
+      {/* FORM */}
+      <Card className="ui-card ui-card-hero hover slide-up">
+        <div className="ui-card-pad" style={{ display: "grid", gap: 14 }}>
+          {/* Title */}
+          <div style={{ display: "grid", gap: 6 }}>
+            <div className="ui-field-label">Titre</div>
             <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -164,72 +200,91 @@ export default function AddChapterTeacher() {
             />
           </div>
 
-          <div>
-            <div style={label}>Description (recommandée)</div>
+          {/* Description */}
+          <div style={{ display: "grid", gap: 6 }}>
+            <div className="ui-field-label">
+              Description <span style={{ color: "var(--placeholder)" }}>(recommandée)</span>
+            </div>
+
             <textarea
+              className="ui-textarea"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Colle ici le contenu du cours (ou mets au moins quelques lignes)."
-              style={textarea}
             />
+
             {autoGenerateQuiz && !file && (
-              <div style={{ fontSize: 12, color: "var(--placeholder)", marginTop: 6 }}>
+              <div className="ui-field-hint">
                 Conseil: sans PDF, vise au moins {MIN_DESC_FOR_AUTOQUIZ} caractères.
               </div>
             )}
+
             {!description.trim() && (
-              <div style={{ fontSize: 12, color: "var(--placeholder)", marginTop: 6 }}>
-                Si tu laisses vide, on enverra automatiquement “Cours: {title.trim() || "Chapitre"}”.
+              <div className="ui-field-hint">
+                Si tu laisses vide, on enverra automatiquement “Cours:{" "}
+                {title.trim() || "Chapitre"}”.
               </div>
             )}
           </div>
 
-          {/* ✅ Upload PDF */}
-          <div>
-            <div style={label}>Fichier (PDF)</div>
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <input type="file" accept="application/pdf" onChange={onPickFile} />
-              <span style={{ fontSize: 12, color: "var(--placeholder)" }}>
-                {fileHint}
-              </span>
-              {file && (
-                <button
-                  type="button"
-                  onClick={() => setFile(null)}
-                  style={{
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    color: "#b00020",
-                    fontSize: 12,
-                  }}
-                >
-                  Retirer
-                </button>
-              )}
+          {/* Upload PDF */}
+          <div style={{ display: "grid", gap: 8 }}>
+            <div className="ui-field-label">Fichier (PDF)</div>
+
+            <div className="ui-upload">
+              <div style={{ display: "grid", gap: 4 }}>
+                <div style={{ fontWeight: 900 }}>📄 Ajouter un PDF</div>
+                <div className="ui-field-hint">{fileHint}</div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                <label className="ui-upload-btn">
+                  Choisir un fichier
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    onChange={onPickFile}
+                    style={{ display: "none" }}
+                  />
+                </label>
+
+                {file && (
+                  <button
+                    type="button"
+                    className="ui-link-danger"
+                    onClick={() => setFile(null)}
+                  >
+                    Retirer
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          <label style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <input
-              type="checkbox"
-              checked={autoGenerateQuiz}
-              onChange={(e) => setAutoGenerateQuiz(e.target.checked)}
-            />
-            Générer un quiz automatiquement
-          </label>
+          {/* Toggle auto quiz */}
+          <div className="ui-toggle-row">
+            <label className="ui-toggle">
+              <input
+                type="checkbox"
+                checked={autoGenerateQuiz}
+                onChange={(e) => setAutoGenerateQuiz(e.target.checked)}
+              />
+              <span className="ui-toggle-ui" />
+            </label>
 
+            <div style={{ display: "grid", gap: 2 }}>
+              <div style={{ fontWeight: 950 }}>Générer un quiz automatiquement</div>
+              <div className="ui-field-hint">
+                Idéal pour créer un quiz à partir du PDF ou du texte.
+              </div>
+            </div>
+          </div>
+
+          {/* Auto quiz options */}
           {autoGenerateQuiz && (
-            <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr" }}>
-              <div>
-                <div style={label}>Nombre de questions</div>
+            <div className="ui-form-grid">
+              <div style={{ display: "grid", gap: 6 }}>
+                <div className="ui-field-label">Nombre de questions</div>
                 <Input
                   type="number"
                   min={1}
@@ -238,73 +293,52 @@ export default function AddChapterTeacher() {
                   onChange={(e) => setQuizQuestionCount(Number(e.target.value))}
                   placeholder="5"
                 />
-                <div style={{ fontSize: 12, color: "var(--placeholder)", marginTop: 6 }}>
-                  Entre 1 et 50
-                </div>
+                <div className="ui-field-hint">Entre 1 et 50</div>
               </div>
 
-              <div>
-                <div style={label}>Difficulté</div>
+              <div style={{ display: "grid", gap: 6 }}>
+                <div className="ui-field-label">Difficulté</div>
                 <select
+                  className="ui-select"
                   value={difficulty}
                   onChange={(e) => setDifficulty(e.target.value as any)}
-                  style={select}
                 >
                   <option value="facile">facile</option>
                   <option value="moyen">moyen</option>
                   <option value="difficile">difficile</option>
                 </select>
+                <div className="ui-field-hint">Ajuste selon le niveau de la classe</div>
               </div>
             </div>
           )}
 
-          <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button type="button" disabled={loading} onClick={onSubmit}>
-              {loading ? "Création..." : "Créer"}
+          {/* CTA */}
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" }}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate(`/teacher/classes/${classId}`)}
+              disabled={loading}
+            >
+              Annuler
             </Button>
+
+            <Button type="button" disabled={loading} onClick={onSubmit}>
+              {loading ? "Création..." : autoGenerateQuiz ? "Créer + Générer le quiz" : "Créer"}
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Petite carte conseil (donne de la vie) */}
+      <Card className="ui-card hover slide-up">
+        <div className="ui-card-pad" style={{ display: "grid", gap: 6 }}>
+          <div style={{ fontWeight: 950 }}>💡 Conseil</div>
+          <div style={{ color: "var(--placeholder)" }}>
+            Plus le contenu (PDF ou texte) est riche, plus le quiz généré sera pertinent.
           </div>
         </div>
       </Card>
     </div>
   );
 }
-
-const label: React.CSSProperties = {
-  fontSize: 12,
-  color: "var(--placeholder)",
-  marginBottom: 6,
-};
-
-const textarea: React.CSSProperties = {
-  width: "100%",
-  minHeight: 160,
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.12)",
-  padding: 12,
-  outline: "none",
-};
-
-const select: React.CSSProperties = {
-  width: "100%",
-  height: 42,
-  borderRadius: 12,
-  border: "1px solid rgba(0,0,0,0.12)",
-  padding: "0 12px",
-  outline: "none",
-};
-
-const backBtn: React.CSSProperties = {
-  border: "none",
-  background: "#fff",
-  borderRadius: 10,
-  padding: "8px 10px",
-  cursor: "pointer",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-};
-
-const errorBox: React.CSSProperties = {
-  background: "#ffecec",
-  color: "#b00020",
-  padding: 10,
-  borderRadius: 10,
-};

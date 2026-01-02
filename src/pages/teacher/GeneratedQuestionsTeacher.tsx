@@ -7,8 +7,8 @@ import { getSubjectById, updateSubject } from "../../api/subjects";
 
 type QuizQuestion = {
   question: string;
-  options: string[]; // ✅ backend v2
-  answers: string[]; // ✅ backend v2 (subset of options)
+  options: string[];
+  answers: string[]; // backend v2 : UNE seule bonne réponse
 };
 
 function ensure4Options(q: QuizQuestion): QuizQuestion {
@@ -16,38 +16,21 @@ function ensure4Options(q: QuizQuestion): QuizQuestion {
   while (options.length < 4) options.push("");
   if (options.length > 4) options.splice(4);
 
-  const answers = Array.isArray(q.answers) ? [...q.answers] : [];
-  // Ensure answer is in options
-  const ans = answers[0];
-  if (ans && !options.includes(ans)) {
-    return { ...q, options, answers: [] };
-  }
-  return { ...q, options, answers: ans ? [ans] : [] };
-}
-
-function getCorrectIndex(q: QuizQuestion) {
   const ans = q.answers?.[0];
-  if (!ans) return -1;
-  return (q.options || []).findIndex((o) => o === ans);
+  return {
+    ...q,
+    options,
+    answers: ans && options.includes(ans) ? [ans] : [],
+  };
 }
 
 function normalizeForSave(q: QuizQuestion): QuizQuestion {
-  // Keep exactly 4, trim
-  const options = (q.options || []).slice(0, 4).map((o) => String(o ?? "").trim());
-
-  // Replace empty options with safe placeholders so backend passes validation
-  const filled = options.map((o, i) => (o ? o : `Option ${i + 1}`));
-
-  // Ensure answer exists and is in options
-  let ans = q.answers?.[0]?.trim() ?? "";
-  if (!ans || !filled.includes(ans)) {
-    ans = filled[0]; // fallback
-  }
-
+  const options = q.options.map((o, i) => (o?.trim() ? o.trim() : `Option ${i + 1}`));
+  const ans = q.answers?.[0];
   return {
-    question: String(q.question ?? "").trim() || "Question",
-    options: filled,
-    answers: [ans],
+    question: q.question?.trim() || "Question",
+    options,
+    answers: ans && options.includes(ans) ? [ans] : [options[0]],
   };
 }
 
@@ -62,15 +45,14 @@ export default function GeneratedQuestionsTeacher() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // init from navigation state OR fetch
+  /* ===== INIT ===== */
   useEffect(() => {
     const state = location.state as any;
 
     if (state?.quizQuestions) {
-      const qs = Array.isArray(state.quizQuestions) ? state.quizQuestions : [];
       setTitle(state.subjectTitle ?? "");
       setDescription(state.subjectDescription ?? "");
-      setQuestions(qs.map(ensure4Options));
+      setQuestions(state.quizQuestions.map(ensure4Options));
       return;
     }
 
@@ -82,47 +64,42 @@ export default function GeneratedQuestionsTeacher() {
         const s = res?.subject ?? res;
         setTitle(s?.title ?? "");
         setDescription(s?.description ?? "");
-        const qs = Array.isArray(s?.quizQuestions) ? s.quizQuestions : [];
-        setQuestions(qs.map(ensure4Options));
+        setQuestions((s?.quizQuestions ?? []).map(ensure4Options));
       })
       .catch((e) => setError(e?.message ?? "Impossible de charger le quiz"))
       .finally(() => setLoading(false));
   }, [location.state, subjectId]);
 
-  const updateQuestionText = (qIdx: number, value: string) => {
-    setQuestions((prev) => prev.map((q, i) => (i === qIdx ? { ...q, question: value } : q)));
-  };
+  /* ===== UPDATES ===== */
+  const updateQuestionText = (qi: number, v: string) =>
+    setQuestions((prev) => prev.map((q, i) => (i === qi ? { ...q, question: v } : q)));
 
-  const updateOptionText = (qIdx: number, optIdx: number, value: string) => {
+  const updateOptionText = (qi: number, oi: number, v: string) =>
     setQuestions((prev) =>
       prev.map((q, i) => {
-        if (i !== qIdx) return q;
+        if (i !== qi) return q;
         const next = ensure4Options(q);
-        const old = next.options[optIdx] ?? "";
         const options = [...next.options];
-        options[optIdx] = value;
+        const old = options[oi];
+        options[oi] = v;
 
-        // if this option was the selected answer, update answer string to match
         const ans = next.answers?.[0];
-        const answers = ans && ans === old ? [value] : next.answers;
-
-        return { ...next, options, answers };
+        return {
+          ...next,
+          options,
+          answers: ans === old ? [v] : next.answers,
+        };
       })
     );
-  };
 
-  const setCorrectOption = (qIdx: number, optIdx: number) => {
+  const setCorrectOption = (qi: number, oi: number) =>
     setQuestions((prev) =>
-      prev.map((q, i) => {
-        if (i !== qIdx) return q;
-        const next = ensure4Options(q);
-        const selected = next.options[optIdx] ?? "";
-        return { ...next, answers: selected ? [selected] : [] };
-      })
+      prev.map((q, i) =>
+        i === qi ? { ...ensure4Options(q), answers: [q.options[oi]] } : q
+      )
     );
-  };
 
-  const addQuestion = () => {
+  const addQuestion = () =>
     setQuestions((prev) => [
       ...prev,
       {
@@ -131,36 +108,31 @@ export default function GeneratedQuestionsTeacher() {
         answers: ["Option 1"],
       },
     ]);
-  };
 
-  const removeQuestion = (qIdx: number) => {
-    setQuestions((prev) => prev.filter((_, i) => i !== qIdx));
-  };
+  const removeQuestion = (qi: number) =>
+    setQuestions((prev) => prev.filter((_, i) => i !== qi));
 
+  /* ===== SAVE ===== */
   const canSave = useMemo(() => questions.length > 0, [questions.length]);
 
   const onSave = async () => {
     if (!subjectId) return;
-
     if (!questions.length) {
       setError("Ajoute au moins une question.");
       return;
     }
 
-    // normalize for backend v2
-    const normalized = questions.map(normalizeForSave);
-
-    setError(null);
     setLoading(true);
+    setError(null);
 
     try {
+      const normalized = questions.map(normalizeForSave);
       await updateSubject(subjectId, {
         title,
         description,
         quizQuestions: normalized,
         quizQuestionCount: normalized.length,
       });
-
       navigate(`/teacher/classes/${classId}`, { replace: true });
     } catch (e: any) {
       setError(e?.message ?? "Impossible d’enregistrer le quiz.");
@@ -172,50 +144,65 @@ export default function GeneratedQuestionsTeacher() {
   if (loading && !questions.length) return <div>Chargement…</div>;
 
   return (
-    <div style={{ maxWidth: 900, display: "grid", gap: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 style={{ margin: 0 }}>Questions générées</h1>
-        <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}`)}>
-          Retour
-        </Button>
+    <div className="ui-page fade-in" style={{ maxWidth: 900 }}>
+      {/* HEADER */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <h1 className="ui-page-title">Quiz – questions générées</h1>
+        <Button onClick={() => navigate(`/teacher/classes/${classId}`)}>Retour</Button>
       </div>
 
-      {error && <div style={errorBox}>{error}</div>}
+      {error && <div className="ui-alert-error">{error}</div>}
 
+      {/* QUESTIONS */}
       {questions.map((q, qi) => {
         const qq = ensure4Options(q);
-        const correctIndex = getCorrectIndex(qq);
+        const correct = qq.answers?.[0];
 
         return (
-          <Card key={qi}>
-            <div style={{ padding: 16, display: "grid", gap: 12 }}>
+          <Card key={qi} className="hover">
+            <div className="ui-card-pad" style={{ display: "grid", gap: 12 }}>
               <Input
                 value={qq.question}
                 onChange={(e) => updateQuestionText(qi, e.target.value)}
                 placeholder={`Question ${qi + 1}`}
               />
 
-              <div style={{ display: "grid", gap: 8 }}>
-                {qq.options.map((opt, oi) => (
-                  <div key={oi} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <input
-                      type="radio"
-                      checked={oi === correctIndex}
-                      onChange={() => setCorrectOption(qi, oi)}
-                      title="Bonne réponse"
-                    />
-                    <Input
-                      value={opt}
-                      onChange={(e) => updateOptionText(qi, oi, e.target.value)}
-                      placeholder={`Réponse ${oi + 1}`}
-                    />
-                  </div>
-                ))}
+              <div className="quiz-options">
+                {qq.options.map((opt, oi) => {
+                  const isCorrect = opt === correct;
+                  const hasAnswer = Boolean(correct);
+
+                  return (
+                    <div
+                      key={oi}
+                      className={[
+                        "quiz-option-edit",
+                        hasAnswer && isCorrect && "is-correct",
+                        hasAnswer && !isCorrect && "is-wrong",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
+                      onClick={() => setCorrectOption(qi, oi)}
+                    >
+                      <span className="quiz-letter">
+                        {String.fromCharCode(65 + oi)}
+                      </span>
+
+                      <Input
+                        value={opt}
+                        onChange={(e) =>
+                          updateOptionText(qi, oi, e.target.value)
+                        }
+                        placeholder={`Réponse ${oi + 1}`}
+                      />
+                    </div>
+                  );
+                })}
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <Button type="button" onClick={() => removeQuestion(qi)} style={dangerBtn}>
-                  Supprimer
+                <Button variant="danger" onClick={() => removeQuestion(qi)}>
+                  Supprimer la question
                 </Button>
               </div>
             </div>
@@ -223,39 +210,16 @@ export default function GeneratedQuestionsTeacher() {
         );
       })}
 
-      <div style={{ display: "flex", gap: 10, justifyContent: "space-between" }}>
-        <Button type="button" onClick={addQuestion} style={ghostBtn}>
+      {/* FOOTER */}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10 }}>
+        <Button variant="ghost" onClick={addQuestion}>
           + Ajouter une question
         </Button>
 
-        <Button type="button" disabled={loading || !canSave} onClick={onSave}>
+        <Button disabled={!canSave || loading} onClick={onSave}>
           {loading ? "Enregistrement…" : "Enregistrer le quiz"}
         </Button>
       </div>
     </div>
   );
 }
-
-const errorBox: React.CSSProperties = {
-  background: "#ffecec",
-  color: "#b00020",
-  padding: 10,
-  borderRadius: 10,
-};
-
-const ghostBtn: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid rgba(0,0,0,0.12)",
-  borderRadius: 12,
-  padding: "10px 12px",
-  cursor: "pointer",
-};
-
-const dangerBtn: React.CSSProperties = {
-  background: "transparent",
-  border: "1px solid rgba(176,0,32,0.25)",
-  color: "#b00020",
-  borderRadius: 12,
-  padding: "10px 12px",
-  cursor: "pointer",
-};

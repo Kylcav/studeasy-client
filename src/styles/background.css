@@ -1,10 +1,16 @@
 .bg-grid {
   min-height: 100vh;
-  background-image: url("/assets/images/screen-background-with-grid.png");
-  background-size: cover;
-  background-position: top center;
-  background-repeat: no-repeat;
+
+  /* 1) Gradient premium (donne la chaleur + profondeur) */
+  background-image:
+    linear-gradient(180deg, #f5fbff 0%, #eef6ff 40%, #ffffff 100%),
+    url("/assets/images/screen-background-with-grid.png");
+
+  background-size: cover, cover;
+  background-position: center, top center;
+  background-repeat: no-repeat, no-repeat;
 }
+
 
 .bg-classic {
   min-height: 100vh;
@@ -21,6 +27,8 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(900px 500px at 70% 25%, rgba(255,255,255,0.60), rgba(255,255,255,0)),
-    radial-gradient(800px 500px at 25% 80%, rgba(255,255,255,0.35), rgba(255,255,255,0));
+    radial-gradient(900px 520px at 70% 20%, rgba(255,255,255,0.65), rgba(255,255,255,0)),
+    radial-gradient(760px 520px at 20% 78%, rgba(255,255,255,0.40), rgba(255,255,255,0)),
+    linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0));
 }
+

@@ -1,5 +1,6 @@
 @import "./styles/theme.css";
 @import "./styles/background.css";
+@import "./styles/ui.css";
 
 html, body {
   height: 100%;
@@ -9,9 +10,26 @@ body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color: var(--text);
-  background: var(--white2);
+
+  /* ✅ meilleure sensation visuelle */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* le fond réel est géré par .bg-grid, mais on met une base propre */
+  background: #f5fbff;
 }
 
 * { box-sizing: border-box; }
 
 a { color: inherit; text-decoration: none; }
+
+/* ✅ petites bases typographiques premium */
+h1, h2, h3 {
+  margin: 0;
+  letter-spacing: -0.4px;
+}
+
+p {
+  margin: 0;
+  line-height: 1.5;
+}

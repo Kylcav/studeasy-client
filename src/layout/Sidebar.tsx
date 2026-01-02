@@ -4,14 +4,6 @@ import { useAuth } from "../context/AuthContext";
 import { logout } from "../api/auth";
 import { getProfileImageObjectUrl } from "../api/users";
 
-const linkStyle = ({ isActive }: any) => ({
-  padding: "10px 14px",
-  borderRadius: 8,
-  background: isActive ? "#e8ebff" : "transparent",
-  color: "#1a1a1a",
-  textDecoration: "none",
-});
-
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, setUser } = useAuth();
@@ -20,9 +12,13 @@ export default function Sidebar() {
   const isTeacher = role === "teacher";
   const base = isTeacher ? "/teacher" : "/student";
 
+  const roleLabel = isTeacher ? "Professeur" : "Étudiant";
+  const greeting = isTeacher
+    ? "Prêt à enseigner aujourd’hui ? ✨"
+    : "Prêt à apprendre aujourd’hui ? ✨";
+
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // ✅ Charger l'avatar depuis le backend (utile si image privée / nécessite Authorization)
   useEffect(() => {
     let mounted = true;
     let lastUrl: string | null = null;
@@ -39,7 +35,6 @@ export default function Sidebar() {
 
         if (!mounted) return;
 
-        // cleanup old object url
         if (lastUrl) URL.revokeObjectURL(lastUrl);
         lastUrl = url;
 
@@ -61,101 +56,83 @@ export default function Sidebar() {
     navigate("/login", { replace: true });
   };
 
-  return (
-    <aside style={{ width: 240, background: "#fff", padding: 24 }}>
-      {/* ✅ Header compte (avatar + email) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 999,
-            overflow: "hidden",
-            background: "rgba(0,0,0,0.06)",
-            display: "grid",
-            placeItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="avatar"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          ) : (
-            <span style={{ fontSize: 18 }}>👤</span>
-          )}
-        </div>
+  const navClass = ({ isActive }: { isActive: boolean }) =>
+    `nav-link ${isActive ? "active" : ""}`;
 
-        <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, letterSpacing: 0.5 }}>STUDEASY</div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "var(--placeholder)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              maxWidth: 150,
-            }}
-            title={user?.email ?? ""}
-          >
-            {user?.email ?? ""}
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-profile">
+        <div className="sidebar-header">
+          <div className="sidebar-avatar">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt="avatar"
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              />
+            ) : (
+              <span style={{ fontSize: 18 }}>👤</span>
+            )}
+          </div>
+
+          <div className="sidebar-brand">
+            <div className="sidebar-brand-top">
+              <div className="sidebar-brand-name">STUDEASY</div>
+              <span className="role-pill">{roleLabel}</span>
+            </div>
+
+            <div className="sidebar-brand-email" title={user?.email ?? ""}>
+              {user?.email ?? ""}
+            </div>
           </div>
         </div>
+
+        <div className="sidebar-greeting">{greeting}</div>
       </div>
 
-      <nav style={{ display: "grid", gap: 8 }}>
+      <div className="sidebar-divider" />
+
+      <nav className="sidebar-nav">
         {isTeacher ? (
           <>
-            {/* Teacher : landing = /teacher -> redirect classes, donc on pointe direct */}
-            <NavLink to={`${base}/classes`} style={linkStyle}>
+            {/* ✅ Accueil Teacher */}
+            <NavLink to={`${base}/home`} className={navClass}>
+              Accueil
+            </NavLink>
+
+            <NavLink to={`${base}/classes`} className={navClass}>
               Classes
             </NavLink>
 
-            <NavLink to={`${base}/insights`} style={linkStyle}>
+            <NavLink to={`${base}/insights`} className={navClass}>
               Insights
             </NavLink>
 
-            <NavLink to={`${base}/profile`} style={linkStyle}>
+            <NavLink to={`${base}/profile`} className={navClass}>
               Profil
             </NavLink>
           </>
         ) : (
           <>
-            {/* Student : landing = /student -> redirect home */}
-            <NavLink to={`${base}/home`} style={linkStyle}>
+            <NavLink to={`${base}/home`} className={navClass}>
               Accueil
             </NavLink>
 
-            <NavLink to={`${base}/classes`} style={linkStyle}>
+            <NavLink to={`${base}/classes`} className={navClass}>
               Classes
             </NavLink>
 
-            {/* Studeasy-v2 : rank = erreurs/mistakes */}
-            <NavLink to={`${base}/rank`} style={linkStyle}>
+            <NavLink to={`${base}/rank`} className={navClass}>
               Rang / Erreurs
             </NavLink>
 
-            <NavLink to={`${base}/profile`} style={linkStyle}>
+            <NavLink to={`${base}/profile`} className={navClass}>
               Profil
             </NavLink>
           </>
         )}
 
-        <button
-          onClick={onLogout}
-          style={{
-            padding: "10px 14px",
-            borderRadius: 8,
-            border: "1px solid #e6e6e6",
-            background: "transparent",
-            textAlign: "left",
-            cursor: "pointer",
-            marginTop: 10,
-          }}
-        >
+        <button onClick={onLogout} className="sidebar-logout">
           Déconnexion
         </button>
       </nav>
