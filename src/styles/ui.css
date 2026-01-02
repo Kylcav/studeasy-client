@@ -952,4 +952,148 @@
   border-color: rgba(93,128,250,0.35);
   box-shadow: 0 0 0 5px rgba(93,128,250,0.10);
 }
+/* ===== QUIZ LIST (Pro) ===== */
+.quiz-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
 
+.quiz-item {
+  border-radius: 22px;
+  overflow: hidden;
+}
+
+.quiz-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.quiz-item:hover .quiz-row {
+  transform: translateY(-1px);
+}
+
+.quiz-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.quiz-index {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  background: rgba(93,128,250,0.14);
+  box-shadow: 0 10px 22px rgba(93,128,250,0.16);
+  flex: 0 0 auto;
+}
+
+.quiz-q {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.quiz-q-title {
+  font-weight: 950;
+  font-size: 16px;
+  line-height: 1.25;
+  color: var(--text, #111);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quiz-q-meta {
+  font-size: 13px;
+  color: var(--placeholder);
+}
+
+.quiz-chevron {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(0,0,0,0.06);
+  transition: transform 180ms ease;
+  flex: 0 0 auto;
+}
+
+.quiz-chevron.open {
+  transform: rotate(180deg);
+}
+
+.quiz-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 240ms ease;
+}
+
+.quiz-panel.open {
+  max-height: 650px;
+}
+
+.quiz-answers {
+  padding: 0 18px 18px 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.quiz-answer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 12px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.quiz-answer-bullet {
+  width: 30px;
+  height: 30px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-weight: 950;
+  background: rgba(0,0,0,0.05);
+  flex: 0 0 auto;
+}
+
+.quiz-answer-text {
+  flex: 1;
+  font-weight: 650;
+}
+
+/* ✅ Bonne réponse (vert) */
+.quiz-answer.is-correct {
+  border-color: rgba(34,197,94,0.35);
+  background: rgba(34,197,94,0.10);
+}
+
+.quiz-answer.is-correct .quiz-answer-bullet {
+  background: rgba(34,197,94,0.16);
+}
+
+.quiz-badge {
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(34,197,94,0.14);
+  border: 1px solid rgba(34,197,94,0.25);
+}
