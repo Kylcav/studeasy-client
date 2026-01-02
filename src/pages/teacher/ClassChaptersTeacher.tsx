@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../components/ui/button";
 import Card from "../../components/ui/card";
-import { deleteSubject, getSubjectsByClass } from "../../api/subjects";
+import { deleteSubject, getSubjectsByClass, updateSubject } from "../../api/subjects";
+
+function accentToShadow(accent: string) {
+  const s = String(accent ?? "").trim();
+  const m = s.match(
+    /rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\)/i
+  );
+  if (!m) return "rgba(0,0,0,0.12)";
+  const r = Number(m[1]);
+  const g = Number(m[2]);
+  const b = Number(m[3]);
+  return `rgba(${r},${g},${b},0.36)`;
+}
 
 export default function ClassChaptersTeacher() {
   const { classId } = useParams();
@@ -11,6 +23,12 @@ export default function ClassChaptersTeacher() {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // ✅ même logique que Classes : sélection + édition inline
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
 
   const refresh = async () => {
     if (!classId) return;
@@ -40,9 +58,49 @@ export default function ClassChaptersTeacher() {
     return 0;
   };
 
-  const totalQuestions = useMemo(() => {
-    return subjects.reduce((acc, s) => acc + getQuestionCount(s), 0);
-  }, [subjects]);
+  const startInlineEdit = (s: any) => {
+    const sid = getId(s);
+    if (!sid) return;
+    setEditingId(sid);
+    setEditingValue(String(s?.title ?? ""));
+  };
+
+  const cancelInlineEdit = () => {
+    setEditingId(null);
+    setEditingValue("");
+  };
+
+  const commitInlineEdit = async (s: any) => {
+    const sid = getId(s);
+    if (!sid) return;
+
+    const next = editingValue.trim();
+    const prev = String(s?.title ?? "").trim();
+
+    if (!next || next === prev) {
+      cancelInlineEdit();
+      return;
+    }
+
+    try {
+      setSavingId(sid);
+      setError(null);
+
+      // Optimiste
+      setSubjects((old) =>
+        old.map((x) => (getId(x) === sid ? { ...x, title: next } : x))
+      );
+
+      await updateSubject(sid, { title: next });
+      cancelInlineEdit();
+    } catch (e: any) {
+      setError(e?.message ?? "Erreur lors de la modification.");
+      await refresh();
+      cancelInlineEdit();
+    } finally {
+      setSavingId(null);
+    }
+  };
 
   const onDelete = async (s: any) => {
     const sid = getId(s);
@@ -65,23 +123,9 @@ export default function ClassChaptersTeacher() {
     navigate(`/teacher/classes/${classId}/view-quiz/${sid}`);
   };
 
-  const onEditQuiz = (s: any) => {
-    const sid = getId(s);
-    if (!sid) return;
-
-    navigate(`/teacher/classes/${classId}/generated-questions/${sid}`, {
-      state: {
-        subjectId: sid,
-        subjectTitle: s?.title ?? "",
-        subjectDescription: s?.description ?? "",
-        quizQuestions: Array.isArray(s?.quizQuestions) ? s.quizQuestions : [],
-      },
-    });
-  };
-
   return (
     <div className="ui-page fade-in">
-      {/* ===== HEADER PREMIUM ===== */}
+      {/* ===== HEADER ===== */}
       <div className="slide-up" style={{ display: "grid", gap: 10 }}>
         <div
           style={{
@@ -109,10 +153,18 @@ export default function ClassChaptersTeacher() {
           </div>
 
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <Button type="button" variant="ghost" onClick={() => navigate(`/teacher/classes/${classId}/invite`)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate(`/teacher/classes/${classId}/invite`)}
+            >
               👥 Inviter élèves
             </Button>
-            <Button type="button" variant="ghost" onClick={() => navigate(`/teacher/classes/${classId}/students`)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => navigate(`/teacher/classes/${classId}/students`)}
+            >
               👀 Voir élèves
             </Button>
             <Button type="button" onClick={() => navigate(`/teacher/classes/${classId}/add-chapter`)}>
@@ -121,12 +173,7 @@ export default function ClassChaptersTeacher() {
           </div>
         </div>
 
-        {/* ===== CHIPS STATS (donne de la vie) ===== */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <span className="ui-chip">📚 {loading ? "…" : subjects.length} chapitres</span>
-          <span className="ui-chip">✅ {loading ? "…" : totalQuestions} questions</span>
-          <span className="ui-chip">✨ Cours → Quiz rapidement</span>
-        </div>
+        {/* ✅ SUPPRIMÉ : les chips stats */}
       </div>
 
       {/* ===== ERROR ===== */}
@@ -145,7 +192,7 @@ export default function ClassChaptersTeacher() {
         </div>
       )}
 
-      {/* ===== EMPTY STATE ===== */}
+      {/* ===== EMPTY ===== */}
       {!loading && !error && subjects.length === 0 && (
         <Card className="ui-card ui-card-hero hover slide-up">
           <div className="ui-card-pad" style={{ display: "grid", gap: 10 }}>
@@ -162,8 +209,8 @@ export default function ClassChaptersTeacher() {
         </Card>
       )}
 
-      {/* ===== GRID CHAPTERS ===== */}
-      <div className="ui-grid-2 slide-up">
+      {/* ===== LISTE EN LIGNES (full width) ===== */}
+      <div className="ui-list slide-up">
         {subjects.map((s, idx) => {
           const sid = getId(s);
           const count = getQuestionCount(s);
@@ -176,53 +223,81 @@ export default function ClassChaptersTeacher() {
               : "rgba(251,191,36,0.12)";
 
           return (
-            <Card key={sid || s?.title} className="ui-card hover">
-              <div className="ui-card-pad class-card">
-                <div className="class-card-accent" style={{ background: accent }} />
+            <Card
+              key={sid || s?.title || idx}
+              className={`ui-card hover chapter-row ${selectedId === sid ? "is-selected" : ""}`}
+              style={{
+                ["--class-accent" as any]: accent,
+                ["--class-shadow" as any]: accentToShadow(accent),
+              }}
+              onClick={() => setSelectedId(sid)}
+            >
+              {/* ✅ croix suppression top-right */}
+              <button
+                type="button"
+                className="class-delete"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(s);
+                }}
+                aria-label="Supprimer"
+                title="Supprimer"
+              >
+                ✕
+              </button>
 
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
-                    <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontWeight: 950,
-                          fontSize: 16,
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                        title={s?.title ?? "Cours"}
-                      >
-                        📘 {s?.title ?? "Cours"}
-                      </div>
+              <div className="ui-card-pad chapter-content">
+                {/* gauche : titre + sous-texte */}
+                <div className="chapter-left" style={{ minWidth: 0 }}>
+                  {editingId === sid ? (
+                    <input
+                      className="class-title-input"
+                      autoFocus
+                      value={editingValue}
+                      onChange={(e) => setEditingValue(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commitInlineEdit(s);
+                        if (e.key === "Escape") cancelInlineEdit();
+                      }}
+                      onBlur={() => commitInlineEdit(s)}
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      className="class-title"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startInlineEdit(s);
+                      }}
+                      title="Clique pour modifier"
+                    >
+                      {s?.title ?? "Cours"}
+                      {savingId === sid ? <span className="class-saving"> •</span> : null}
+                    </button>
+                  )}
 
-                      <div style={{ color: "var(--placeholder)" }}>
-                        {count ? `✅ ${count} questions` : "⚠️ Aucun quiz"}
-                      </div>
-                    </div>
-
-                    <span className="ui-chip">{count} 🧠</span>
-                  </div>
-
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Button type="button" onClick={() => onViewQuiz(s)} disabled={!count}>
-                      Voir le quiz
-                    </Button>
-
-                    <Button type="button" variant="ghost" onClick={() => onEditQuiz(s)} disabled={!count}>
-                      Modifier
-                    </Button>
-
-                    <Button type="button" variant="danger" onClick={() => onDelete(s)}>
-                      Supprimer
-                    </Button>
-                  </div>
-
-                  <div style={{ color: "var(--placeholder)", fontSize: 13 }}>
-                    ✨ Astuce : un quiz bien fait booste la motivation des élèves.
+                  <div className="class-sub">
+                    {count ? `${count} questions` : "Aucun quiz"}
                   </div>
                 </div>
+
+                {/* droite : voir le quiz tout à droite */}
+                <div className="chapter-right">
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onViewQuiz(s);
+                    }}
+                    disabled={!count}
+                  >
+                    Voir le quiz →
+                  </Button>
+                </div>
               </div>
+
+              {/* ✅ SUPPRIMÉ : astuce */}
             </Card>
           );
         })}

@@ -869,3 +869,87 @@
   .class-bottom .ui-btn { width: 100%; }
 }
 
+/* ===== Chapitres : liste en lignes full width ===== */
+
+.ui-list {
+  display: grid;
+  gap: 12px;
+}
+
+.ui-card.chapter-row {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+
+  /* mêmes vibes que les classes (couleur + douceur) */
+  background:
+    radial-gradient(760px 420px at 12% 18%, var(--class-accent), rgba(255,255,255,0) 62%),
+    radial-gradient(760px 420px at 86% 82%, var(--class-accent), rgba(255,255,255,0) 68%),
+    linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.74));
+}
+
+.ui-card.chapter-row.hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 22px 54px var(--class-shadow);
+}
+
+.ui-card.chapter-row.is-selected {
+  transform: translateY(-1px);
+  box-shadow: 0 26px 70px var(--class-shadow);
+  border-color: rgba(0,0,0,0.08);
+}
+
+/* contenu d'une ligne */
+.chapter-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.chapter-left {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.chapter-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+/* responsive : bouton en dessous si écran étroit */
+@media (max-width: 720px) {
+  .chapter-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .chapter-right .ui-btn {
+    width: 100%;
+  }
+}
+/* ===== Fix overlap croix / bouton (chapitres) ===== */
+
+/* réserve de la place à droite pour la croix */
+.ui-card.chapter-row .chapter-content {
+  padding-right: 54px; /* 34px bouton + marges */
+}
+
+/* bouton légèrement décalé à gauche (mais reste à droite) */
+.ui-card.chapter-row .chapter-right {
+  margin-right: 10px;
+}
+
+/* croix bien calée en haut à droite */
+.ui-card.chapter-row .class-delete {
+  top: 14px;
+  right: 14px;
+}
+/* Drag & drop highlight */
+.ui-upload.is-dragging {
+  border-color: rgba(93,128,250,0.35);
+  box-shadow: 0 0 0 5px rgba(93,128,250,0.10);
+}
+

@@ -1,145 +1,220 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import Button from "../../components/ui/button";
 import Card from "../../components/ui/card";
-import { getSchoolStudentsWithFlags, inviteStudentsToClass } from "../../api/classes";
+import Button from "../../components/ui/button";
+
+import {
+  getClassStudents,
+  getSchoolStudentsWithFlags,
+  inviteStudents,
+} from "../../api/classes";
+
+type Student = {
+  _id?: string;
+  id?: string;
+  email?: string;
+  name?: string;
+  fullName?: string;
+
+  // flags possibles selon backend
+  isInClass?: boolean;
+  inClass?: boolean;
+  alreadyInClass?: boolean;
+};
+
+function sid(s: Student) {
+  return String(s.id ?? s._id ?? "");
+}
+
+function labelOf(s: Student) {
+  return s.name ?? s.fullName ?? s.email ?? sid(s);
+}
+
+function isAlreadyInClass(s: Student) {
+  return Boolean(s.isInClass ?? s.inClass ?? s.alreadyInClass);
+}
 
 export default function InviteStudentsTeacher() {
   const { classId } = useParams();
   const navigate = useNavigate();
 
-  const [rows, setRows] = useState<any[]>([]);
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [schoolStudents, setSchoolStudents] = useState<Student[]>([]);
+  const [classStudents, setClassStudents] = useState<Student[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const refresh = async () => {
     if (!classId) return;
-    const data = await getSchoolStudentsWithFlags(classId);
-    setRows(Array.isArray(data) ? data : data?.students ?? []);
+    setLoading(true);
+    setError(null);
+
+    try {
+      // ✅ endpoint autorisé teacher
+      const [school, inClass] = await Promise.all([
+        getSchoolStudentsWithFlags(classId),
+        getClassStudents(classId),
+      ]);
+
+      const schoolList = Array.isArray(school)
+        ? school
+        : school?.students ?? school?.users ?? school?.data ?? [];
+
+      const classList = Array.isArray(inClass)
+        ? inClass
+        : inClass?.students ?? inClass?.users ?? inClass?.data ?? [];
+
+      setSchoolStudents(schoolList);
+      setClassStudents(classList);
+      setSelectedIds([]);
+    } catch (e: any) {
+      setError(e?.message ?? "Request failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    if (!classId) return;
-    refresh().catch((e) => setError(e?.message ?? "Impossible de charger les élèves."));
+    refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
-  const selectedIds = useMemo(
-    () => Object.entries(selected).filter(([, v]) => v).map(([k]) => k),
-    [selected]
-  );
+  // ✅ Liste invitable = élèves de l’école - ceux déjà dans la classe
+  const invitableStudents = useMemo(() => {
+    const inClassSet = new Set(classStudents.map(sid));
+
+    return schoolStudents.filter((s) => {
+      const id = sid(s);
+      if (!id) return false;
+
+      // 1) via flags backend
+      if (isAlreadyInClass(s)) return false;
+
+      // 2) fallback via set classStudents
+      if (inClassSet.has(id)) return false;
+
+      return true;
+    });
+  }, [schoolStudents, classStudents]);
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
 
   const onInvite = async () => {
     if (!classId) return;
-    if (selectedIds.length === 0) {
-      setError("Sélectionne au moins un élève.");
-      return;
-    }
+    if (selectedIds.length === 0) return;
 
+    setLoading(true);
     setError(null);
-    setInfo(null);
-
     try {
-      setLoading(true);
+      await inviteStudents(classId, selectedIds);
 
-      const resp: any = await inviteStudentsToClass(classId, selectedIds);
-      const results = resp?.results ?? {};
-
-      const added: string[] = Array.isArray(results.added) ? results.added : [];
-      const alreadyInClass: string[] = Array.isArray(results.alreadyInClass) ? results.alreadyInClass : [];
-      const invalid: string[] = Array.isArray(results.invalid) ? results.invalid : [];
-
-      if (added.length === 0) {
-        const parts: string[] = [];
-        if (alreadyInClass.length) parts.push(`${alreadyInClass.length} déjà dans la classe`);
-        if (invalid.length) parts.push(`${invalid.length} invalides`);
-        setError(parts.length ? `Aucun élève ajouté : ${parts.join(", ")}.` : "Aucun élève ajouté.");
-        await refresh();
-        return;
-      }
-
-      const msgParts: string[] = [`✅ ${added.length} ajouté(s)`];
-      if (alreadyInClass.length) msgParts.push(`${alreadyInClass.length} déjà dedans`);
-      if (invalid.length) msgParts.push(`${invalid.length} invalides`);
-      setInfo(msgParts.join(" · "));
-
-      setSelected({});
+      // ✅ refresh => ils disparaissent de la liste inviter
       await refresh();
-      navigate(`/teacher/classes/${classId}`, { replace: true });
     } catch (e: any) {
-      setError(e?.message ?? "Invitation impossible.");
+      setError(e?.message ?? "Impossible d'inviter les élèves.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <button onClick={() => navigate(`/teacher/classes/${classId}`)} style={backBtn}>
-          ←
-        </button>
-        <h1 style={{ margin: 0 }}>Inviter des élèves</h1>
+    <div className="ui-page fade-in">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <Button variant="ghost" onClick={() => navigate(-1)}>
+          ← Retour
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => navigate(`/teacher/classes/${classId}/students`)}
+        >
+          👀 Voir élèves
+        </Button>
       </div>
 
-      {error && <div style={errorBox}>{error}</div>}
-      {info && <div style={infoBox}>{info}</div>}
+      <h1 className="ui-page-title">
+        <span className="ui-title-accent">Inviter élèves</span>
+      </h1>
 
-      <Card>
-        <div style={{ padding: 14, display: "grid", gap: 10 }}>
-          {rows.map((s) => {
-            const inClass = !!s.isinvite; // ✅ flag backend V2
-            return (
-              <label key={s._id} style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <input
-                  type="checkbox"
-                  disabled={inClass}
-                  checked={!!selected[s._id]}
-                  onChange={(e) => setSelected((p) => ({ ...p, [s._id]: e.target.checked }))}
-                />
-                <div style={{ display: "grid" }}>
-                  <div style={{ fontWeight: 800 }}>{s.name ?? "Élève"}</div>
-                  <div style={{ color: "#666", fontSize: 13 }}>{s.email ?? ""}</div>
-                </div>
-                <div style={{ marginLeft: "auto", color: "#666", fontSize: 13 }}>
-                  {inClass ? "Déjà dans la classe" : ""}
-                </div>
-              </label>
-            );
-          })}
+      {error && (
+        <Card className="ui-card hover">
+          <div className="ui-card-pad ui-alert-error">{error}</div>
+        </Card>
+      )}
+
+      <Card className="ui-card hover">
+        <div
+          className="ui-card-pad"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ color: "var(--placeholder)" }}>
+            Sélectionne des élèves à inviter.{" "}
+            <b>Ceux déjà dans la classe ne sont pas affichés.</b>
+          </div>
+
+          <Button disabled={loading || selectedIds.length === 0} onClick={onInvite}>
+            {loading ? "..." : `Inviter (${selectedIds.length})`}
+          </Button>
         </div>
       </Card>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Button type="button" disabled={loading} onClick={onInvite}>
-          {loading ? "Invitation..." : `Inviter (${selectedIds.length})`}
-        </Button>
+      <div className="ui-list slide-up" style={{ marginTop: 12 }}>
+        {!loading &&
+          invitableStudents.map((s) => {
+            const id = sid(s);
+            const selected = selectedIds.includes(id);
+
+            return (
+              <Card
+                key={id}
+                className={`ui-card hover chapter-row ${selected ? "is-selected" : ""}`}
+                onClick={() => toggle(id)}
+              >
+                <div className="ui-card-pad chapter-content">
+                  <div style={{ display: "grid", gap: 6, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontWeight: 950,
+                        fontSize: 18,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {labelOf(s)}
+                    </div>
+                    <div style={{ color: "var(--placeholder)" }}>{s.email ?? ""}</div>
+                  </div>
+
+                  <div className="chapter-right">
+                    <span className="ui-chip">{selected ? "✅ Sélectionné" : "➕ Ajouter"}</span>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+
+        {!loading && invitableStudents.length === 0 && !error && (
+          <div style={{ color: "var(--placeholder)" }}>
+            Aucun élève à inviter (tous sont déjà dans la classe).
+          </div>
+        )}
       </div>
     </div>
   );
 }
-
-const backBtn: React.CSSProperties = {
-  border: "none",
-  background: "#fff",
-  borderRadius: 10,
-  padding: "8px 10px",
-  cursor: "pointer",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-};
-
-const errorBox: React.CSSProperties = {
-  background: "#ffecec",
-  color: "#b00020",
-  padding: 10,
-  borderRadius: 10,
-};
-
-const infoBox: React.CSSProperties = {
-  background: "#e9fff0",
-  color: "#137333",
-  padding: 10,
-  borderRadius: 10,
-};
