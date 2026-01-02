@@ -28,7 +28,7 @@ function withApiPrefix(path: string) {
   return baseHasApi ? p : `/api${p}`;
 }
 
-/** Construit l'URL finale (même logique que apiFetch) */
+/** Construit l'URL finale */
 function buildApiUrl(path: string) {
   const base = cleanBase(API_URL);
   if (!base) throw new Error("VITE_API_URL manquant dans .env");
@@ -36,9 +36,7 @@ function buildApiUrl(path: string) {
 }
 
 /**
- * ⚠️ ATTENTION:
- * Sur certains backends V2, GET /users/:id n'est pas autorisé pour teacher.
- * (Seulement admin + student)
+ * ⚠️ GET /users/:id pas autorisé teacher sur ce backend
  */
 export const getUserById = async (id: string) => {
   if (!id) throw new Error("User id manquant");
@@ -62,7 +60,6 @@ export const uploadProfileImage = async (userId: string, file: File) => {
   const fd = new FormData();
   fd.append("profileImage", file);
 
-  // apiFetch gère Authorization; ne pas set Content-Type avec FormData
   const data = await apiFetch(`/users/${userId}/profile-image`, {
     method: "POST",
     body: fd,
@@ -76,11 +73,7 @@ export const uploadProfileImage = async (userId: string, file: File) => {
 };
 
 /**
- * ✅ Récupérer l'image via l'API (si privée / nécessite Authorization)
- * GET /users/:id/profile-image
- * => retourne un objectURL affichable dans <img src="...">
- *
- * IMPORTANT: pense à URL.revokeObjectURL(oldUrl) quand tu changes d'image
+ * ✅ GET profile image -> blob -> objectURL
  */
 export const getProfileImageObjectUrl = async (userId: string) => {
   if (!userId) return null;
@@ -88,7 +81,6 @@ export const getProfileImageObjectUrl = async (userId: string) => {
   const token = getToken();
   if (!token) return null;
 
-  // On construit la même URL que l'API (avec /api si nécessaire)
   const url = buildApiUrl(`/users/${userId}/profile-image`);
 
   const res = await fetch(url, {
@@ -102,7 +94,37 @@ export const getProfileImageObjectUrl = async (userId: string) => {
   return URL.createObjectURL(blob);
 };
 
-/** Petit helper optionnel pour éviter les leaks */
 export const revokeObjectUrl = (url?: string | null) => {
   if (url && url.startsWith("blob:")) URL.revokeObjectURL(url);
 };
+
+/**
+ * ✅ Update name (PUT /users/:id)
+ */
+export async function updateUserName(userId: string, name: string) {
+  const data = await apiFetch(`/users/${userId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+
+  const rawUser = data?.user ?? data;
+  const user = normalizeUser(rawUser);
+  if (user) setCachedUser(user);
+  return user;
+}
+
+/**
+ * ⚠️ "Changer mot de passe" FRONT ONLY possible uniquement si compte encore en mdp par défaut.
+ * On utilise POST /users/set-password qui attend { email, password }.
+ */
+export async function setPasswordFirstTime(email: string, newPassword: string) {
+  if (!email) throw new Error("Email manquant");
+  if (!newPassword) throw new Error("Nouveau mot de passe manquant");
+
+  return apiFetch(`/users/set-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: newPassword }),
+  });
+}
