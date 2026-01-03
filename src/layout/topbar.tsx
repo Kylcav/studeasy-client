@@ -6,8 +6,8 @@ export default function Topbar() {
 
   return (
     <header className="topbar">
-      {/* Header sobre et pro */}
-      <span className="topbar-title">Quizparty</span>
+      {/* Élément conservé uniquement pour le layout */}
+      <span className="topbar-title" />
 
       <button
         className="topbar-action"

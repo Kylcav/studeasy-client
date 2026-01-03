@@ -1,81 +1,161 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../../components/ui/card";
+import Button from "../../components/ui/button";
 import { getClasses } from "../../api/classes";
 
-export default function StudentClasses() {
-  const [classes, setClasses] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
+function accentToShadow(accent: string) {
+  const s = String(accent ?? "").trim();
+  const m = s.match(
+    /rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\)/i
+  );
+  if (!m) return "rgba(0,0,0,0.12)";
+  const r = Number(m[1]);
+  const g = Number(m[2]);
+  const b = Number(m[3]);
+  return `rgba(${r},${g},${b},0.36)`;
+}
+
+export default function ClassesStudent() {
   const navigate = useNavigate();
 
+  const [classes, setClasses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // UI : sélection (on garde, comme teacher)
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // ✅ exactement comme teacher : supporte les 2 formats
+      const data = await getClasses();
+      const list = Array.isArray(data) ? data : data?.classes ?? [];
+
+      setClasses(list);
+    } catch (e: any) {
+      setError(e?.message ?? "Impossible de charger les classes.");
+      setClasses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
-    getClasses()
-      .then((res) => {
-        if (!mounted) return;
-        setClasses(Array.isArray(res) ? res : res?.classes ?? []);
-      })
-      .catch((e) => mounted && setError(e?.message ?? "Impossible de charger les classes."));
-    return () => {
-      mounted = false;
-    };
+    refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <div style={{ display: "grid", gap: 14 }}>
-      <h1 style={{ margin: 0 }}>Classes</h1>
-      <p style={{ margin: 0, color: "#666" }}>
-        Choisis ta classe pour accéder aux cours et lancer des quiz.
-      </p>
+    <div className="ui-page fade-in">
+      {/* ===== HEADER (même que teacher, sans bouton ajouter) ===== */}
+      <div className="slide-up" style={{ display: "grid", gap: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <h1 className="ui-page-title">
+              <span className="ui-title-accent">Classes</span>
+            </h1>
+            <p className="ui-page-subtitle">
+              Retrouve tes classes et ouvre-les pour accéder aux cours et aux quiz.
+            </p>
+          </div>
+        </div>
+      </div>
 
-      {error && <div style={errorBox}>{error}</div>}
+      {/* ===== ERROR (même style que teacher) ===== */}
+      {error && (
+        <Card className="ui-card hover slide-up">
+          <div className="ui-card-pad ui-alert-error">
+            <div style={{ fontWeight: 900, marginBottom: 6 }}>Oups…</div>
+            <div>{error}</div>
+          </div>
+        </Card>
+      )}
 
-      <div style={grid}>
-        {classes.map((c) => {
-          const id = String(c?.id ?? c?._id ?? "");
+      {/* ===== EMPTY (texte adapté student) ===== */}
+      {!loading && classes.length === 0 && !error && (
+        <Card className="ui-card ui-card-hero hover slide-up">
+          <div className="ui-card-pad" style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontWeight: 950, fontSize: 18 }}>📚 Aucune classe</div>
+            <div style={{ color: "var(--placeholder)" }}>
+              Tes classes apparaîtront ici dès qu’un professeur t’aura ajouté.
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* ===== GRID CLASSES (copie 1:1 teacher, sans croix + sans édition) ===== */}
+      <div className="ui-grid-3 slide-up">
+        {classes.map((c, idx) => {
+          const count = c?.subjects?.length ?? 0;
+
+          const accent =
+            idx % 3 === 0
+              ? "rgba(93,128,250,0.18)"
+              : idx % 3 === 1
+              ? "rgba(74,222,128,0.14)"
+              : "rgba(251,191,36,0.12)";
+
           return (
-            <button
-              key={id}
-              onClick={() => navigate(`/student/classes/${id}`)}
-              style={cardButton}
+            <Card
+              key={c._id}
+              className={`ui-card hover class-tile ${
+                selectedId === c._id ? "is-selected" : ""
+              }`}
+              style={{
+                ["--class-accent" as any]: accent,
+                ["--class-shadow" as any]: accentToShadow(accent),
+              }}
+              onClick={() => setSelectedId(String(c._id))}
             >
-              <div style={{ fontWeight: 900, fontSize: 16 }}>{c?.name ?? "Classe"}</div>
-              <div style={{ color: "#666", marginTop: 6 }}>
-                {c?.subjects?.length ? `${c.subjects.length} cours` : "0 cours"}
+              <div className="ui-card-pad class-card">
+                <div className="class-top">
+                  <div style={{ minWidth: 0 }}>
+                    {/* ✅ même rendu que teacher, mais sans bouton d’édition */}
+                    <div className="class-title" style={{ cursor: "default" }}>
+                      {c?.name ?? "Classe"}
+                    </div>
+
+                    <div className="class-sub">
+                      {count === 0
+                        ? "Aucun cours"
+                        : count === 1
+                        ? "1 cours"
+                        : `${count} cours`}
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className="class-bottom"
+                  style={{ display: "flex", justifyContent: "flex-end" }}
+                >
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/student/classes/${c._id}`);
+                    }}
+                  >
+                    Ouvrir →
+                  </Button>
+                </div>
               </div>
-            </button>
+            </Card>
           );
         })}
       </div>
-
-      {!error && classes.length === 0 && (
-        <Card>
-          <div style={{ padding: 14, color: "#666" }}>Aucune classe trouvée.</div>
-        </Card>
-      )}
     </div>
   );
 }
-
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: 12,
-};
-
-const cardButton: React.CSSProperties = {
-  textAlign: "left",
-  background: "#fff",
-  borderRadius: 14,
-  padding: 16,
-  border: "1px solid rgba(0,0,0,0.06)",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-  cursor: "pointer",
-};
-
-const errorBox: React.CSSProperties = {
-  background: "#ffecec",
-  color: "#b00020",
-  padding: 10,
-  borderRadius: 10,
-};

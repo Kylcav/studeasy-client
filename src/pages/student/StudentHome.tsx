@@ -1,144 +1,158 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Card from "../../components/ui/card";
 import Button from "../../components/ui/button";
-import { getClasses } from "../../api/classes";
 import { useAuth } from "../../context/AuthContext";
 
-export default function StudentHome() {
+export default function HomeStudent() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [classes, setClasses] = useState<any[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    getClasses()
-      .then((res) => {
-        if (!mounted) return;
-        const list = Array.isArray(res) ? res : res?.classes ?? [];
-        setClasses(list);
-      })
-      .catch((e) => mounted && setError(e?.message ?? "Request failed"));
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const firstName = useMemo(() => {
-    const name = String(user?.name ?? user?.fullName ?? "").trim();
-    return name ? name.split(" ")[0] : "";
+  const displayName = useMemo(() => {
+    return (
+      user?.name ||
+      user?.fullName ||
+      user?.username ||
+      (user?.email ? user.email.split("@")[0] : "Élève")
+    );
   }, [user]);
 
-  const recentClasses = useMemo(() => {
-    return classes
-      .slice()
-      .sort((a, b) => {
-        const da = new Date(a?.createdAt ?? 0).getTime();
-        const db = new Date(b?.createdAt ?? 0).getTime();
-        return db - da;
-      })
-      .slice(0, 5);
-  }, [classes]);
-
   return (
-    <div style={{ display: "grid", gap: 14, maxWidth: 980 }}>
-      <h1 style={{ margin: 0 }}>
-        {firstName ? `Salut ${firstName} 👋` : "Salut 👋"}
-      </h1>
-      <p style={{ margin: 0, color: "#666" }}>
-        Comme sur l’app Studeasy-v2 : accès rapide aux classes et aux quiz.
-      </p>
+    <div className="ui-page fade-in" style={{ display: "grid", gap: 14 }}>
+      {/* ===== HEADER ===== */}
+      <div className="slide-up" style={{ display: "grid", gap: 6 }}>
+        <h1 className="ui-page-title">
+          <span className="ui-title-accent">Espace élève {displayName}</span>
+        </h1>
 
-      {error && <div style={errorBox}>{error}</div>}
+        <p className="ui-page-subtitle">
+          Accès rapide aux cours, à ta progression et à ton profil.
+        </p>
+      </div>
 
-      <Card>
+      {/* ===== SECTIONS PRINCIPALES ===== */}
+      <div className="ui-grid-2 slide-up">
+        {/* ===== COURS & QUIZ ===== */}
+        <Card className="ui-card hover">
+          <div
+            className="ui-card-pad"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              height: "100%",
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>
+                📚 Cours & quiz
+              </div>
+
+              <div style={{ color: "var(--placeholder)", lineHeight: 1.55 }}>
+                Tes professeurs te proposent des quiz que tu peux réaliser.
+                <br />
+                <br />
+                Lors du premier essai, tu gagnes des points en fonction de tes
+                réponses justes.
+                <br />
+                Ensuite, pour que le quiz soit validé, il faut que tu le réussisses
+                une fois en répondant correctement à toutes les questions.
+                <br />
+                Une fois validé, tu récupères encore les points manquants pour
+                améliorer ta note finale.
+              </div>
+            </div>
+
+            {/* bouton bas droite */}
+            <div
+              style={{
+                marginTop: "auto",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <Button
+                type="button"
+                onClick={() => navigate("/student/classes")}
+                style={{ minWidth: 180 }}
+              >
+                Voir mes classes →
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* ===== PROGRESSION ===== */}
+        <Card className="ui-card hover">
+          <div
+            className="ui-card-pad"
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+              height: "100%",
+            }}
+          >
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontWeight: 900, fontSize: 18 }}>
+                📈 Suis tes progressions
+              </div>
+
+              <div style={{ color: "var(--placeholder)", lineHeight: 1.55 }}>
+                Consulte ta note globale, ton niveau par classe, les quiz qu’il te
+                reste à valider et les erreurs à corriger pour progresser plus
+                rapidement.
+              </div>
+            </div>
+
+            {/* bouton bas droite */}
+            <div
+              style={{
+                marginTop: "auto",
+                display: "flex",
+                justifyContent: "flex-end",
+              }}
+            >
+              <Button
+                type="button"
+                onClick={() => navigate("/student/rank")}
+                style={{ minWidth: 200 }}
+              >
+                Voir ma progression →
+              </Button>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ===== PROFIL ===== */}
+      <Card className="ui-card hover slide-up">
         <div
+          className="ui-card-pad"
           style={{
-            padding: 16,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: 16,
+            gap: 12,
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "grid", gap: 6 }}>
-            <div style={{ fontWeight: 900, fontSize: 16 }}>Quiz questions</div>
-            <div style={{ color: "#666", fontSize: 13 }}>
-              Lance un quiz sur tes cours et progresse plus vite.
+          <div>
+            <div style={{ fontWeight: 900, fontSize: 18 }}>👤 Mon profil</div>
+            <div style={{ color: "var(--placeholder)", marginTop: 4 }}>
+              Modifie tes informations et paramètres de compte.
             </div>
           </div>
-          <Button type="button" onClick={() => navigate("/student/classes")}>
-            Démarrer
+
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => navigate("/student/profile")}
+          >
+            Modifier mon profil →
           </Button>
         </div>
       </Card>
-
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <h2 style={{ margin: 0, fontSize: 18 }}>Récemment consulté</h2>
-        <button onClick={() => navigate("/student/classes")} style={linkBtn}>
-          Voir tout
-        </button>
-      </div>
-
-      <div style={grid}>
-        {recentClasses.map((c) => {
-          const id = String(c?.id ?? c?._id ?? "");
-          return (
-            <button
-              key={id}
-              onClick={() => navigate(`/student/classes/${id}`)}
-              style={classCard}
-            >
-              <div style={{ fontWeight: 900 }}>{c?.name ?? "Classe"}</div>
-              <div style={{ color: "#666", marginTop: 6, fontSize: 13 }}>
-                {c?.subjects?.length ? `${c.subjects.length} cours` : "0 cours"}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {!error && classes.length === 0 && (
-        <Card>
-          <div style={{ padding: 14, color: "#666" }}>
-            Aucune classe trouvée. Demande à ton professeur de t’inviter dans une classe.
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
-
-const grid: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: 12,
-};
-
-const classCard: React.CSSProperties = {
-  textAlign: "left",
-  background: "#fff",
-  borderRadius: 14,
-  padding: 16,
-  border: "1px solid rgba(0,0,0,0.06)",
-  boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
-  cursor: "pointer",
-};
-
-const linkBtn: React.CSSProperties = {
-  border: "none",
-  background: "transparent",
-  color: "var(--primary)",
-  cursor: "pointer",
-  fontWeight: 700,
-};
-
-const errorBox: React.CSSProperties = {
-  background: "#ffecec",
-  color: "#b00020",
-  padding: 10,
-  borderRadius: 10,
-};
